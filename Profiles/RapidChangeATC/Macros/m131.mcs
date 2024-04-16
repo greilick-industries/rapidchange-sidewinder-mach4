@@ -1,0 +1,15 @@
+function m131()
+  rcSub.Validate_HomeXYZ()
+  rcSub.Validate_ToolTouchOff()
+  rcSub.Setup_ToolTouchOff()
+  rcSub.Execute_ToolTouchOff()
+  rcSub.Teardown_ToolTouchOff()
+end
+
+if (mc.mcInEditor() == 1) then
+	local inst = mc.mcGetInstance()
+	local profile = mc.mcProfileGetName(inst)
+	local path = mc.mcCntlGetMachDir(inst)
+	dofile (path .. "\\Profiles\\" .. profile .. "\\Macros\\load_rapidChangeATC.mcs")
+	m131()
+end

@@ -1,0 +1,53 @@
+local inst = mc.mcGetInstance("m6")
+
+function m6()
+	
+	local rcDebug, rcCommon, rcToolChange, rc
+	rcDebug = require "rcDebug"
+	rcCommon = require "rcCommon"
+	rcToolChange = require "rcToolChange"
+	
+	if (mc.mcToolGetSelected(inst) == mc.mcToolGetCurrent(inst)) then
+			rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, "M6: Selected tool = Current tool. No change required." )
+			do return end
+	end
+	
+	rc = rcToolChange.PreToolChange()
+	if ( rc ~= mc.MERROR_NOERROR ) then
+		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, 
+			string.format("M6 Error: rcToolChange.PreToolChange( ) %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
+		do return end
+	end
+	
+	rc = rcToolChange.UnloadTool()
+	if ( rc ~= mc.MERROR_NOERROR ) then
+		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, 
+			string.format("M6 Error: rcToolChange.UnloadTool( ) %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
+		do return end
+	end
+	
+	rc = rcToolChange.LoadTool()
+	if ( rc ~= mc.MERROR_NOERROR ) then
+		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, 
+			string.format("M6 Error: rcToolChange.LoadTool( ) %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
+		do return end
+	end
+	
+	rc = rcToolChange.PostToolChange()
+	if ( rc ~= mc.MERROR_NOERROR ) then
+		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, 
+			string.format("M6 Error: rcToolChange.PostToolChange( ) %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
+		do return end
+	end
+	
+end
+
+if (mc.mcInEditor() == 1) then
+	
+	local profile = mc.mcProfileGetName(inst)
+	local path = mc.mcCntlGetMachDir(inst)
+	dofile (path .. "\\Profiles\\" .. profile .. "\\Macros\\load_wiifmATC.mcs")
+	m6()
+	
+end
+

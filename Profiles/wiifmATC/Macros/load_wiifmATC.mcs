@@ -1,0 +1,46 @@
+---------------------------------------------------------------
+-- Load wiifm ATC modules
+---------------------------------------------------------------
+
+local inst = mc.mcGetInstance()
+local profile = mc.mcProfileGetName(inst)
+local machDir = mc.mcCntlGetMachDir(inst)
+
+pathSuffixTable = {
+	"lua","luac","mcs","mcc"
+}
+	
+local paths = ""
+-- RapidChange ATC  modules
+for k, suffix in pairs(pathSuffixTable) do
+	
+	paths = paths .. ";" ..  machDir .. "\\Modules\\ATC\\?." .. suffix
+
+end
+
+-- remove first ';'
+paths = string.sub(paths,2)
+
+package.path = paths
+
+--wiifmATC Modules
+package.loaded.rcSpindle = nil
+rcSpindle = require "rcSpindle"
+
+package.loaded.rcMagazine = nil
+rcMagazine = require "rcMagazine"
+
+package.loaded.rcPocket = nil
+rcPocket = require "rcPocket"
+
+package.loaded.rcTool = nil
+rcTool = require "rcTool"
+
+package.loaded.rcCommon = nil
+rcCommon = require "rcCommon"
+
+package.loaded.rcGCode = nil
+rcGCode = require "rcGCode"
+
+package.loaded.rcToolChange = nil
+rcToolChange = require "rcToolChange"

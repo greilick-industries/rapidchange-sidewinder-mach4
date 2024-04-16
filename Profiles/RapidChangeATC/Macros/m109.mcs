@@ -1,0 +1,14 @@
+function m109()
+  rcSub.Validate_CoverControl()
+  rcSub.Setup_CoverControl()
+  rcSub.Execute_CoverClose()
+  rcSub.Teardown_CoverControl()
+end
+
+if (mc.mcInEditor() == 1) then
+	local inst = mc.mcGetInstance()
+	local profile = mc.mcProfileGetName(inst)
+	local path = mc.mcCntlGetMachDir(inst)
+	dofile (path .. "\\Profiles\\" .. profile .. "\\Macros\\load_rapidChangeATC.mcs")
+	m6()
+end
