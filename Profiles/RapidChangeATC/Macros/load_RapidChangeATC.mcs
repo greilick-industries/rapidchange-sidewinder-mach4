@@ -15,6 +15,7 @@ local paths = ""
 for k, suffix in pairs(pathSuffixTable) do
 	
 	paths = paths .. ";" ..  machDir .. "\\Modules\\RapidChangeATC\\?." .. suffix
+	paths = paths .. ";" ..  machDir .. "\\Modules\\RapidChangeATC\\Core\\?." .. suffix
 
 end
 
