@@ -46,7 +46,7 @@ if (mc.mcInEditor() == 1) then
 	
 	local profile = mc.mcProfileGetName(inst)
 	local path = mc.mcCntlGetMachDir(inst)
-	dofile (path .. "\\Profiles\\" .. profile .. "\\Macros\\load_wiifmATC.mcs")
+	dofile (path .. "\\Profiles\\" .. profile .. "\\Macros\\load_RapidChangeATC.mcs")
 	m6()
 	
 end
