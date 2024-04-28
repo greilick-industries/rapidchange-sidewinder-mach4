@@ -1,0 +1,62 @@
+local inst, dock, offset, feedRate, rc
+
+inst = mc.mcGetInstance( "m114" )
+
+-- Get values from the machine.ini. DO NOT EDIT THESE VALUES HERE!!!
+local function ReadIni()
+
+	dock = {
+        x = mc.mcProfileGetDouble( inst, "DustShoe", "dock.x", 0.0 ),
+        y = mc.mcProfileGetDouble( inst, "DustShoe", "dock.y", 0.0 ),
+        z = mc.mcProfileGetDouble( inst, "DustShoe", "dock.z", 0.0 ),
+    }
+    offset = {
+        x = mc.mcProfileGetDouble( inst, "DustShoe", "offset.x", 0.0 ),
+        y = mc.mcProfileGetDouble( inst, "DustShoe", "offset.y", 0.0 ),
+        z = mc.mcProfileGetDouble( inst, "DustShoe", "offset.z", 0.0 ),
+    }
+    feedRate = math.abs( mc.mcProfileGetInt( inst, "DustShoe", "feedRate", 0 ) )
+	
+end
+ReadIni()
+
+function m114()
+	
+    rcDustCover.PreOpen()
+	--[[
+	if rcDustCover.GetContinue == mc.MC_TRUE then
+		-- add user code here!
+	end
+	]]
+	if rcDustCover.GetContinue() == mc.MC_TRUE then
+		-- remove the dust shoe from the spindle
+		rc = mc.mcCntlGcodeExecuteWait( inst, ""
+			.. rcGCode.Line( SPIN_STOP )		-- stop spindle
+			.. rcGCode.Line( COOLANT_STOP )	-- stop coolant
+			.. rcGCode.Line( DISABLE_OVERRIDES )	-- disable feed/speed rate overrides
+			.. rcGCode.Line( SAFE_START )	-- set safe gCode
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z
+			-- Rapid to preUndock position
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, x( dock.x + offset.x ), y( dock.y + offset.y ) )
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( dock.z ) )
+			.. rcGCode.Line( LINEAR_FEED_MOVE, f( feedRate ), x( dock.x ), y( dock.y ) ) -- Linear move to Dock/Undock Position
+			.. rcGCode.Line( LINEAR_FEED_MOVE, f( feedRate ), z( dock.z + offset.z ) ) -- Linear Move to postUndock position
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z
+		)
+    
+	end
+	rcDustCover.Open()
+	rcDustCover.PostOpen()
+	
+end
+
+if (mc.mcInEditor() == 1) then
+	
+	local profile = mc.mcProfileGetName(inst)
+	local path = mc.mcCntlGetMachDir(inst)
+	dofile (path .. "\\Profiles\\" .. profile .. "\\Macros\\load_modules.mcs")
+	m114()
+	
+end
+
+

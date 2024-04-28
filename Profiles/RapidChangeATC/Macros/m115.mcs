@@ -1,0 +1,63 @@
+local inst, dock, offset, feedRate, rc
+
+inst = mc.mcGetInstance( "m115" )
+
+-- Get values from the machine.ini. DO NOT EDIT THESE VALUES HERE!!!
+function ReadIni()
+
+	dock = { 
+        x = mc.mcProfileGetDouble( inst, "DustShoe", "dock.x", 0.0 ),
+        y = mc.mcProfileGetDouble( inst, "DustShoe", "dock.y", 0.0 ),
+        z = mc.mcProfileGetDouble( inst, "DustShoe", "dock.z", 0.0 ),
+    }
+    offset = { 
+        x = mc.mcProfileGetDouble( inst, "DustShoe", "offset.x", 0.0 ),
+        y = mc.mcProfileGetDouble( inst, "DustShoe", "offset.y", 0.0 ),
+        z = mc.mcProfileGetDouble( inst, "DustShoe", "offset.z", 0.0 ),
+    }
+    feedRate = math.abs( mc.mcProfileGetInt( inst, "DustShoe", "feedRate", 0 ) )
+	
+end
+ReadIni()
+
+function m115()
+	
+	rcDustCover.PreClose()
+	rcDustCover.Close()
+	--[[
+	if rcDustCover.GetContinue == mc.MC_TRUE then
+		-- add user code here!
+	end
+	]]
+	if rcDustCover.GetContinue() == mc.MC_TRUE then
+		
+		rc = mc.mcCntlGcodeExecuteWait( inst, ""
+			.. rcGCode.Line( SPIN_STOP ) -- stop spindle
+			.. rcGCode.Line( COOLANT_STOP )	-- stop coolant
+			.. rcGCode.Line( DISABLE_OVERRIDES ) -- disable feed/speed rate overrides
+			.. rcGCode.Line( SAFE_START )	-- set safe gCode
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z
+			-- Rapid to preDock position
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, x( dock.x ), y( dock.y ) )
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( dock.z + offset.z ) )
+			.. rcGCode.Line( LINEAR_FEED_MOVE, f( feedRate ), z( dock.z ) ) -- Linear Move to Dock position
+			.. rcGCode.Line( LINEAR_FEED_MOVE, f( feedRate ), x( dock.x + offset.x ), y( dock.y + offset.y ) ) -- Linear Move to postDock position
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z
+		 )
+		
+    end
+	
+	rcDustCover.PostClose()
+	
+end
+
+if ( mc.mcInEditor() == 1 ) then
+	
+	local profile = mc.mcProfileGetName( inst )
+	local path = mc.mcCntlGetMachDir( inst )
+	dofile ( path .. "\\Profiles\\" .. profile .. "\\Macros\\load_modules.mcs" )
+	m115()
+	
+end
+
+
