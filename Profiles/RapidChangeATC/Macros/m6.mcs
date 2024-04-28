@@ -12,33 +12,10 @@ function m6()
 			do return end
 	end
 	
-	rc = rcToolChange.PreToolChange()
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, 
-			string.format("M6 Error: rcToolChange.PreToolChange( ) %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-		do return end
-	end
-	
-	rc = rcToolChange.UnloadTool()
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, 
-			string.format("M6 Error: rcToolChange.UnloadTool( ) %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-		do return end
-	end
-	
-	rc = rcToolChange.LoadTool()
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, 
-			string.format("M6 Error: rcToolChange.LoadTool( ) %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-		do return end
-	end
-	
-	rc = rcToolChange.PostToolChange()
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, 
-			string.format("M6 Error: rcToolChange.PostToolChange( ) %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-		do return end
-	end
+	rcToolChange.PreToolChange()
+	rcToolChange.UnloadTool()
+	rcToolChange.LoadTool()
+	rcToolChange.PostToolChange()
 	
 end
 
