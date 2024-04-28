@@ -1,0 +1,33 @@
+local inst
+
+inst = mc.mcGetInstance( "m115" )
+
+-- Get values from the machine.ini. DO NOT EDIT THESE VALUES HERE!!!
+function ReadIni()
+
+end
+ReadIni()
+
+function m115()
+	
+	rcDustCover.PreClose()
+	rcDustCover.Close()
+	--[[
+	if rcDustCover.GetContinue == mc.MC_TRUE then
+		-- add user code here!
+	end
+	]]
+	rcDustCover.PostClose()
+	
+end
+
+if ( mc.mcInEditor() == 1 ) then
+	
+	local profile = mc.mcProfileGetName( inst )
+	local path = mc.mcCntlGetMachDir( inst )
+	dofile ( path .. "\\Profiles\\" .. profile .. "\\Macros\\load_RapidChangeATC.mcs" )
+	m115()
+	
+end
+
+

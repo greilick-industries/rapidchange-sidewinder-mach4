@@ -1,0 +1,31 @@
+local inst, dock, offset, feedRate, rc
+
+inst = mc.mcGetInstance( "m114" )
+
+-- Get values from the machine.ini. DO NOT EDIT THESE VALUES HERE!!!
+local function ReadIni()
+
+end
+ReadIni()
+
+function m114()
+	
+    rcDustCover.PreOpen()
+	--[[
+	if rcDustCover.GetContinue == mc.MC_TRUE then
+		-- add user code here!
+	end
+	]]
+	rcDustCover.Open()
+	rcDustCover.PostOpen()
+	
+end
+
+if (mc.mcInEditor() == 1) then
+	
+	local profile = mc.mcProfileGetName(inst)
+	local path = mc.mcCntlGetMachDir(inst)
+	dofile (path .. "\\Profiles\\" .. profile .. "\\Macros\\load_RapidChangeATC.mcs")
+	m114()
+	
+end

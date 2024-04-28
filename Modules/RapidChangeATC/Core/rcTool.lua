@@ -1,73 +1,57 @@
-local inst = mc.mcGetInstance( "rcTool" )
+rcTool = {}
 
-local rcTool = {}
+local inst, rc
 
-	local Data, rc
+inst = mc.mcGetInstance( "rcTool" )
+
+local function ReadIni()
 	
-	local function LoadData( )
-		
-		local data
-		rc = mc.MERROR_NOERROR
-		
-		data = {
-			[ 0 ] = {
-				tIndex = 0,
-				desc = "Bare Spindle",
-				tOD = 25.0,
-				isMaster = false
-			}
+	data = {
+		[ 0 ] = {
+			tIndex = 0,
+			desc = "Bare Spindle",
+			tOD = 25.0,
+			isMaster = false
 		}
-		return data, rc
-		
-	end
+	}
 	
-	Data = LoadData( )
-	
-	local function GetToolInRange( t )
-		
-		rc = mc.MERROR_NOERROR
-		return (t > 0 and t <= 99), rc
-	
-	end
+end
+ReadIni()
 
-	local function GetToolIsMaster( t )
-		
-		rc = mc.MERROR_NOERROR
-		return (t == 1), rc
+local function GetToolInRange( tool )
 	
+	return (tool > 0 and tool <= 99)
+
+end
+
+local function GetToolIsMaster( tool )
+	
+	return (tool == 1)
+
+end
+
+function rcTool.GetData( tool )
+	
+	local desc, tOD
+	
+	if tool == 0 then return data[ 0 ] end  -- tool zero
+	
+	if not GetToolInRange( tool ) then
+		response = rcCommon.ShowMessage( TYPE_MESSAGEBOX, LEVEL_STOP, "Error: Invalid Spindle Index!" )
+		return data [ 0 ]
 	end
 	
-	function rcTool.GetData( t )
-		
-		local desc, tOD
-		rc = mc.MERROR_NOERROR
-		
-		Data = LoadData( )	-- this may not be necessary, but should keep user settings up-to-date
-		
-		if t == 0 then return Data[ 0 ], rc end  -- tool zero
-		
-		if not GetToolInRange( t ) then
-			rc = mc.MERROR_INVALID_ARG
-			return Data [ 0 ], rc 
-		end
-		
-		desc, rc = mc.mcToolGetDesc( inst, t )
-		if ( rc ~= mc.MERROR_NOERROR ) then
-			return Data [ 0 ], rc
-		end
-		
-		tOD, rc = mc.mcToolGetData( inst, mc.MTOOL_MILL_DIA, t )
-		if ( rc ~= mc.MERROR_NOERROR ) then
-			return Data [ 0 ], rc
-		end
-		
-		return {
-			tIndex = t,
-			desc = desc,
-			tOD = tOD,
-			isMaster = GetToolIsMaster( t )
-		}, rc
+	desc, rc = mc.mcToolGetDesc( inst, tool )
 	
-	end
+	tOD, rc = mc.mcToolGetData( inst, mc.MTOOL_MILL_DIA, tool )
+	
+	return {
+		tIndex = tool,
+		desc = desc,
+		tOD = tOD,
+		isMaster = GetToolIsMaster( tool )
+	}, rc
+
+end
 
 return rcTool

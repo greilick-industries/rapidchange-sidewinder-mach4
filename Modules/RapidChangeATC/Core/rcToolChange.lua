@@ -1,293 +1,220 @@
 --[[
 NOTES
 1. All functions are responsible for getting themselves into a safe g53 position AT THE BEGINNING!
-2. rcToolChange.LoadTool( ) is responsible for raising spindle at it's end
+2. rcToolChange.LoadTool() is responsible for raising spindle at it's end
 ]]
-
-local inst = mc.mcGetInstance( "rcToolChange" )
-
-local rcToolChange, rcDebug, rcCommon, rcGCode, rcTool, rcPocket, gCode, rc
-
 rcToolChange = {}
-rcDebug = require "rcDebug"
-rcCommon = require "rcCommon"
-rcGCode = require "rcGCode"
-rcTool = require "rcTool"
-rcPocket = require "rcPocket"
 
-function rcToolChange.LoadTool( )
-	
-	local t, tData, pData, response
-	rc = mc.MERROR_NOERROR
-	
-	t, rc = mc.mcToolGetSelected( inst )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		-- do error handling
-		do return rc end
-	end
-	
-	if t == 0 then -- tool zero
-		gCode = rcGCode.Clear( )
-		gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, rcGCode.GetZSafeClearance( ) )
-		rc = mc.mcCntlGcodeExecuteWait( inst, gCode )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, string.format("Error: mc.mcCntlGcodeExecuteWait( ) - %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-	end
-		do return rc end
-	end
+local inst, tcContinue, rc, tData, pData
 
-	tData, rc =  rcTool.GetData( t )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		-- do error handling
-		do return rc end
+inst = mc.mcGetInstance( "rcToolChange" )
+tcContinue = mc.MC_FALSE
+
+local function ReadIni()
+	
+end
+ReadIni()
+
+
+function rcToolChange.LoadTool()
+	
+	if tcContinue ~= mc.MC_TRUE then return end
+	
+	local tool, response
+		
+	tool, rc = mc.mcToolGetSelected( inst )
+		
+	if tool == 0 then -- tool zero
+		--LoadTool() is repsponsible for getting to safe z
+		rc = mc.mcCntlGcodeExecuteWait( inst, ""
+			.. rcGCode.Line( SAFE_START )	-- set safe gCode
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) )
+		 )
+		return
+		
 	end
 	
-	pData, rc =  rcPocket.GetData( t )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		-- do error handling
-		do return rc end
-	end
-	
-	gCode = rcGCode.Clear( )
-	-- rapid to desired z, we have a bare spindle
-	gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, rcGCode.GetZSafeClearance( ) )		
-	-- rapid to pocket xy position
-	gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, rcGCode.x( pData.p.x ), rcGCode.y( pData.p.y ) )	
-	-- rapid to spindle start position, we have a bare spindle
-	gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, rcGCode.z( pData.p.z + pData.lOffset.z ) )	
-	rc = mc.mcCntlGcodeExecuteWait( inst, gCode )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, string.format("Error: mc.mcCntlGcodeExecuteWait( ) - %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-		do return rc end
-	end
+	tData =  rcTool.GetData( tool )
+	pData = rcPocket.GetData( tool )
+	--  we have a bare spindle
+	rc = mc.mcCntlGcodeExecuteWait( inst, ""
+		.. rcGCode.Line( SAFE_START )	-- set safe gCode
+		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z		
+		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, x( pData.p.x ), y( pData.p.y ) )	-- rapid to pocket xy position
+		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( pData.p.z + pData.lOffset.z ) ) -- rapid to spindle start position
+	 )
 	
 	--load tool, loop if necessary
 	response = wx.wxNO
-	while response == wx.wxNO and rc == mc.MERROR_NOERROR do
+	while response == wx.wxNO do
 		
-		if (pData.spindle.loadRPM > 0) then
-			gCode = rcGCode.Clear( )
+		if ( pData.spindle.loadRPM > 0 ) then
 			-- start spindle and dwell
-			gCode = rcGCode.AddLine( rcGCode.Commands.SPIN_CW, rcGCode.s( pData.spindle.loadRPM ) )								
-			gCode = rcGCode.AddLine( rcGCode.Commands.DWELL, rcGCode.p( pData.spindle.dwell ) )
+			local gCode = "" .. rcGCode.Line( SPIN_CW, s( pData.spindle.loadRPM ) )								
+			gCode = gCode .. rcGCode.Line( DWELL, p( pData.spindle.dwell ) )
 			-- plunge and retract thrice
-			for _ = 1,3 do
-				gCode = rcGCode.AddLine( rcGCode.Commands.INCREMENTAL_POSITION_MODE)															
-				gCode = rcGCode.AddLine( rcGCode.Commands.LINEAR_FEED_MOVE, rcGCode.f( pData.spindle.zFeedRate ), rcGCode.z( -pData.lOffset.z ) )
-				gCode = rcGCode.AddLine( rcGCode.Commands.LINEAR_FEED_MOVE, rcGCode.f( pData.spindle.zFeedRate ), rcGCode.z( pData.lOffset.z ) )
-				gCode = rcGCode.AddLine( rcGCode.Commands.ABSOLUTE_POSITION_MODE)																
+			for _ = 1, 2 do
+				gCode = gCode .. rcGCode.Line( INCREMENTAL_POSITION_MODE )															
+				gCode = gCode .. rcGCode.Line( LINEAR_FEED_MOVE, f( pData.spindle.zFeedRate ), z( -pData.lOffset.z ) )
+				gCode = gCode .. rcGCode.Line( LINEAR_FEED_MOVE, f( pData.spindle.zFeedRate ), z( pData.lOffset.z ) )
+				gCode = gCode .. rcGCode.Line( ABSOLUTE_POSITION_MODE )																
 			end
 			-- stop spindle
-			gCode = rcGCode.AddLine( rcGCode.Commands.SPIN_STOP )
+			gCode = gCode .. rcGCode.Line( SPIN_STOP )
 			rc = mc.mcCntlGcodeExecuteWait( inst, gCode )
-			if ( rc ~= mc.MERROR_NOERROR ) then
-				rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, string.format("Error: mc.mcCntlGcodeExecuteWait( ) - %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-				do return rc end
-			end
+			
 		end
 		-- confirm tool loaded
-		response, rc = rcCommon.ShowMessage( rcCommon.TYPE_MESSAGEBOX, rcCommon.LEVEL_USER_INPUT, string.format( "Is tool loaded from pocket %i in magazine %i?", pData.pIndex, pData.mIndex ) )
+		response = rcCommon.ShowMessage( TYPE_MESSAGEBOX, LEVEL_USER_INPUT, string.format( "Is tool loaded from pocket %i in magazine %i?", pData.pIndex, pData.mIndex ) )
 		
 	end
 	
-	if rc ~= mc.MERROR_NOERROR then
-		--assuming that the tool did not load and we have a bare spindle
-		gCode = rcGCode.Clear( )
-		-- rapid to desired z
-		gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, rcGCode.GetZSafeClearance( ) )	
-		rc = mc.mcCntlGcodeExecuteWait( inst, gCode )
-		if ( rc ~= mc.MERROR_NOERROR ) then
-			rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, string.format("Error: mc.mcCntlGcodeExecuteWait( ) - %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-			do return rc end
-		end
-		-- terminate with e-stop
-		response, rc = rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_ESTOP, "Tool load aborted due to Mach4 error!")						
-		do return rc end
-		
-	end
 	if response == wx.wxCANCEL then
 		--assuming that the tool did not load and we have a bare spindle
-		gCode = rcGCode.Clear( )
-		-- rapid to desired z
-		gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, rcGCode.GetZSafeClearance( ) )
-		rc = mc.mcCntlGcodeExecuteWait( inst, gCode )
-		if ( rc ~= mc.MERROR_NOERROR ) then
-			rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, string.format("Error: mc.mcCntlGcodeExecuteWait( ) - %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-		do return rc end
-		end
+		rc = mc.mcCntlGcodeExecuteWait( inst, ""
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z
+		 )
 		-- terminate with e-stop
-		response, rc = rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_ESTOP, "Tool load aborted due to user cancellation!")						
-		do return rc end
+		response = rcCommon.ShowMessage( TYPE_LAST_ERROR, LEVEL_ESTOP, "Tool load aborted due to user cancellation!" )	
+		tcContinue = mc.mc_FALSE
+		return
+		
 	end
 	-- we have a tool loaded
-	rc = mc.mcToolSetCurrent( inst, t )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		-- do error handling
-		do return rc end
-	end
-	
-	gCode = rcGCode.Clear( )
-	-- rapid to safe xy position, we have a tool onboard
-	gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, 
-		rcGCode.x( pData.p.x + pData.lOffset.x ), 
-		rcGCode.y( pData.p.y + pData.lOffset.y ) )
-	gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, rcGCode.x( pData.p.x + pData.lOffset.x ), rcGCode.y( pData.p.y + pData.lOffset.y ) )-- rapid to safe xy position, we have a tool onboard
-	gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, rcGCode.GetZSafeClearance( ) )							-- rapid to desired z
-	rc = mc.mcCntlGcodeExecuteWait( inst, gCode )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, string.format("Error: mc.mcCntlGcodeExecuteWait( ) - %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-		do return rc end
-	end
-	return rc
-	
+	rc = mc.mcToolSetCurrent( inst, tool )
+	rc = mc.mcCntlGcodeExecuteWait( inst, ""
+		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, x( pData.p.x + pData.lOffset.x ), y( pData.p.y + pData.lOffset.y ) ) -- rapid to safe xy position
+		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z
+	 )
+		
 end
 
-function rcToolChange.UnloadTool( )
+function rcToolChange.UnloadTool()
 	
-	local t, tData, pData, response
-	rc = mc.MERROR_NOERROR
+	if tcContinue ~= mc.MC_TRUE then return end
 	
-	t, rc = mc.mcToolGetCurrent( inst )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, string.format("Error: mc.mcToolGetCurrent( inst ) - %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-		do return rc end
-	end
-	if t == 0 then return rc end -- do nothing for tool zero
+	local tool, response
 	
-	tData, rc =  rcTool.GetData( t )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, string.format("Error: rcTool.GetData( t ) - %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-		do return rc end
-	end
+	tool, rc = mc.mcToolGetCurrent( inst )
+	if tool == 0 then return end -- do nothing for tool zero
 	
-	pData, rc =  rcPocket.GetData( t )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, string.format("Error: rcPocket.GetData( t ) - %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-		do return rc end
-	end
-	
-	gCode = rcGCode.Clear( )
-	-- rapid to desired z
-	gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, rcGCode.GetZSafeClearance( ) )
-	-- rapid to safe xy position, we have a tool onboard
-	gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, rcGCode.x( pData.p.x + pData.lOffset.x ), rcGCode.y( pData.p.y + pData.lOffset.y ) )
-	-- rapid to spindle start position
-	gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, rcGCode.z( pData.p.z + pData.lOffset.z ) )
-	gCode = rcGCode.AddLine( rcGCode.Commands.MACH_OFFSET, rcGCode.Commands.RAPID_MOVE, rcGCode.x( pData.p.x ), rcGCode.y( pData.p.y ) )
-	rc = mc.mcCntlGcodeExecuteWait( inst, gCode )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, string.format("Error: mc.mcCntlGcodeExecuteWait( ) - %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-		do return rc end
-	end
+	tData = rcTool.GetData( tool )
+	pData = rcPocket.GetData( tool )
+	--we have a tool onboard
+	rc = mc.mcCntlGcodeExecuteWait( inst, ""
+		.. rcGCode.Line( SAFE_START )	-- set safe gCode
+		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z
+		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, x( pData.p.x + pData.lOffset.x ), y( pData.p.y + pData.lOffset.y ) ) -- rapid to safe xy position 
+		-- rapid to spindle start position
+		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( pData.p.z + pData.lOffset.z ) )
+		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, x( pData.p.x ), y( pData.p.y ) )
+	 )
 	
 	-- unload tool and confirm, loop if necessary
 	response = wx.wxNO
-	while response == wx.wxNO and rc == mc.MERROR_NOERROR do
+	while response == wx.wxNO  do
 		
 		if ( pData.spindle.unloadRPM > 0 ) then
-		-- plunge and retract
-			gCode = rcGCode.Clear( )
-			-- start spindle in reverse and dwell
-			gCode = rcGCode.AddLine( rcGCode.Commands.SPIN_CCW, rcGCode.s( pData.spindle.unloadRPM ) )								
-			gCode = rcGCode.AddLine( rcGCode.Commands.DWELL, rcGCode.p( pData.spindle.dwell ) )
-			gCode = rcGCode.AddLine( rcGCode.Commands.INCREMENTAL_POSITION_MODE)
-			gCode = rcGCode.AddLine( rcGCode.Commands.LINEAR_FEED_MOVE, rcGCode.f( pData.spindle.zFeedRate ), rcGCode.z( -pData.lOffset.z ) )
-			gCode = rcGCode.AddLine( rcGCode.Commands.LINEAR_FEED_MOVE, rcGCode.f( pData.spindle.zFeedRate ), rcGCode.z( pData.lOffset.z ) )
-			gCode = rcGCode.AddLine( rcGCode.Commands.ABSOLUTE_POSITION_MODE)
-			-- stop spindle
-			gCode = rcGCode.AddLine( rcGCode.Commands.SPIN_STOP )																				
-			rc = mc.mcCntlGcodeExecuteWait( inst, gCode )
-			if ( rc ~= mc.MERROR_NOERROR ) then
-				rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, string.format("Error: mc.mcCntlGcodeExecuteWait( ) - %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-				do return rc end
-			end
+			
+			rc = mc.mcCntlGcodeExecuteWait( inst, ""
+				-- start spindle in reverse and dwell
+				.. rcGCode.Line( SPIN_CCW, s( pData.spindle.unloadRPM ) )								
+				.. rcGCode.Line( DWELL, p( pData.spindle.dwell ) )
+				-- plunge and retract
+				.. rcGCode.Line( INCREMENTAL_POSITION_MODE )
+				.. rcGCode.Line( LINEAR_FEED_MOVE, f( pData.spindle.zFeedRate ), z( -pData.lOffset.z ) )
+				.. rcGCode.Line( LINEAR_FEED_MOVE, f( pData.spindle.zFeedRate ), z( pData.lOffset.z ) )
+				.. rcGCode.Line( ABSOLUTE_POSITION_MODE )
+				.. rcGCode.Line( SPIN_STOP )	-- stop spindle							
+			 )
+			
 		end
 		-- confirm tool unloaded, loop if necessary
-		response, rc = rcCommon.ShowMessage( rcCommon.TYPE_MESSAGEBOX, rcCommon.LEVEL_USER_INPUT, string.format( "Is tool unloaded to pocket %i in magazine %i?", pData.pIndex, pData.mIndex ) )
-	end
+		response = rcCommon.ShowMessage( TYPE_MESSAGEBOX, LEVEL_USER_INPUT, string.format( "Is tool unloaded to pocket %i in magazine %i?", pData.pIndex, pData.mIndex ) )
 	
-	if rc ~= mc.MERROR_NOERROR then
-		response, rc = rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_ESTOP, "Tool unload aborted due to Mach4 error!")						-- terminate with e-stop
-		do return rc end
 	end
 	
 	if response == wx.wxCANCEL then
-		response, rc = rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_ESTOP, "Tool unload aborted due to user cancellation!")						-- terminate with e-stop
-		do return rc end
+		-- terminate with e-stop
+		response = rcCommon.ShowMessage( TYPE_LAST_ERROR, LEVEL_ESTOP, "Tool unload aborted due to user cancellation!" )
+		tcContinue = mc.mc_FALSE
+		return
+		
 	end
-	-- we have a bare spindle
 	-- set tool to 0 for bare spindle
-	local rc = mc.mcToolSetCurrent(inst, 0)														
-	return rc
+	rc = mc.mcToolSetCurrent( inst, 0 )														
 	
 end
 
-function rcToolChange.PreToolChange( )
-
-	rc = mc.MERROR_NOERROR
+function rcToolChange.PreToolChange()
 	
-	-- is selected tool same as current tool? HANDLED EXTERNALLY BY m6()
+	local mach4Enabled, machineHomed
 	
+	tcContinue = mc.MC_TRUE
+	
+	-- is selected tool same as current tool?
+	if ( mc.mcToolGetSelected( inst ) == mc.mcToolGetCurrent( inst ) ) then
+			rcCommon.ShowMessage( TYPE_LAST_ERROR, LEVEL_INFORMATION, "M6: Selected tool = Current tool. No change required." )
+			tcContinue = mc.MC_FALSE
+		return
+	end
+	-- is Mach4 enabled?
+	mach4Enabled = rcCommon.GetMachEnabled()
+	if mach4Enabled ~= mc.MC_TRUE then
+		rcCommon.ShowMessage( TYPE_LAST_ERROR, LEVEL_INFORMATION, "M6: Mach4 not enabled! Toolchange operation aborted." )
+		tcContinue = mc.MC_FALSE
+		return
+	end
 	-- is machine homed?
-	local machineHomed , rc = rcCommon.GetMachIsHomed()
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		-- do error handling
-		do return rc end
-	end
-	if not machineHomed then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_ESTOP, "Machine not homed!" )
-		do return rc end
+	machineHomed  = rcCommon.GetAxesHomed()
+	if machineHomed ~= mc.MC_TRUE then
+		rcCommon.ShowMessage( TYPE_LAST_ERROR, LEVEL_INFORMATION, "M6: Machine not homed! Toolchange operation aborted." )
+		tcContinue = mc.MC_FALSE
+		return
 	end
 	
+	--[[TODO:
+		- record and save flood coolant signal status
+		- record and save mist coolant signal status
+		- record and save dust collection signal status
+	]]
 	-- record state
 	rc = mc.mcCntlMachineStatePush( inst )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		-- do error handling
-		do return rc end
-	end
-
-	-- record feed rate override
-	-- record spindle rate override
-	
-	-- disable feedrate override
-	-- disable spindle rate override
-
-	gCode = rcGCode.Clear( )
-	gCode = rcGCode.AddLine( rcGCode.Commands.SPIN_STOP )		-- stop spindle
-	gCode = rcGCode.AddLine( rcGCode.Commands.COOLANT_STOP )	-- stop coolant
-	gCode = rcGCode.AddLine( rcGCode.Commands.DUST_HOOD_UP )	-- raise dust hood / remove dust foot
-	gCode = rcGCode.AddLine( rcGCode.Commands.SAFE_START )		-- set safe gCode
-	
-	rc = mc.mcCntlGcodeExecuteWait( inst, gCode )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, string.format("Error: mc.mcCntlGcodeExecuteWait( ) - %i: %s", rc, rcDebug.ErrorCodes[ rc ] ) )
-		do return rc end
-	end
-
-	return rc
+	rc = mc.mcCntlGcodeExecuteWait( inst, ""
+		.. rcGCode.Line( SPIN_STOP )		-- stop spindle
+		.. rcGCode.Line( COOLANT_STOP )	-- stop coolant
+		.. rcGCode.Line( DISABLE_OVERRIDES )	-- disable feed/speed rate overrides
+		.. rcGCode.Line( DUST_HOOD_UP )	-- raise dust hood / remove dust foot
+	 )
 	
 end
 
-function rcToolChange.PostToolChange( )
+function rcToolChange.PostToolChange()
 	
-	rc = mc.MERROR_NOERROR
+	if tcContinue ~= mc.MC_TRUE then return end
+	
+	rc = mc.mcCntlGcodeExecuteWait( inst, ""
+		.. rcGCode.Line( DUST_HOOD_DOWN )	-- lower dust hood / replace dust foot
+		.. rcGCode.Line( DISABLE_OVERRIDES )	-- disable feed/speed rate overrides
+	 )
 	
 	-- restore state
 	rc = mc.mcCntlMachineStatePop( inst )
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		-- do error handling
-		do return rc end
-	end
-	
 	-- set current tool to selected
 	rc = mc.mcToolSetCurrent( inst, mc.mcToolGetSelected( inst ) ) 
-	if ( rc ~= mc.MERROR_NOERROR ) then
-		-- do error handling
-		do return rc end
-	end
+	--[[TODO:
+		- restore flood coolant signal status
+		- restore mist coolant signal status
+		- restore dust collection signal status
+	]]	
+	rcCommon.ShowMessage( TYPE_LAST_ERROR, LEVEL_INFORMATION, "M6: Toolchange complete." )
 	
-	return rc
+end
+
+function rcToolChange.GetContinue()
 	
+	return tcContinue
+
 end
 
 return rcToolChange

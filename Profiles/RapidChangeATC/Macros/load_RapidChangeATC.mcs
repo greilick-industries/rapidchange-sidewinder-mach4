@@ -45,3 +45,6 @@ rcGCode = require "rcGCode"
 
 package.loaded.rcToolChange = nil
 rcToolChange = require "rcToolChange"
+
+package.loaded.rcDustCover = nil
+rcDustCover = require "rcDustCover"
