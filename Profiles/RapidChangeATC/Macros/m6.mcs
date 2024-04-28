@@ -1,18 +1,15 @@
-local inst = mc.mcGetInstance("m6")
+local inst
+
+inst = mc.mcGetInstance( "m6" )
 
 function m6()
 	
-	local rcDebug, rcCommon, rcToolChange, rc
-	rcDebug = require "rcDebug"
-	rcCommon = require "rcCommon"
-	rcToolChange = require "rcToolChange"
-	
-	if (mc.mcToolGetSelected(inst) == mc.mcToolGetCurrent(inst)) then
-			rcCommon.ShowMessage( rcCommon.TYPE_LAST_ERROR, rcCommon.LEVEL_INFORMATION, "M6: Selected tool = Current tool. No change required." )
-			do return end
-	end
-	
 	rcToolChange.PreToolChange()
+	--[[
+	if rcToolChange.GetContinue == mc.MC_TRUE then
+		-- add user code here!
+	end
+	]]
 	rcToolChange.UnloadTool()
 	rcToolChange.LoadTool()
 	rcToolChange.PostToolChange()
@@ -23,7 +20,7 @@ if (mc.mcInEditor() == 1) then
 	
 	local profile = mc.mcProfileGetName(inst)
 	local path = mc.mcCntlGetMachDir(inst)
-	dofile (path .. "\\Profiles\\" .. profile .. "\\Macros\\load_RapidChangeATC.mcs")
+	dofile (path .. "\\Profiles\\" .. profile .. "\\Macros\\load_modules.mcs")
 	m6()
 	
 end
