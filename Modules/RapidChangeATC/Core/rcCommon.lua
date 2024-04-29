@@ -13,18 +13,18 @@ inst = mc.mcGetInstance("rcCommon")
 
 function rcCommon.GetAxesHomed(axes)
 	
-	local enabled, homed, rc
+	local enabled, homed
 	
 	axes = axes or {mc.X_AXIS, mc.Y_AXIS, mc.Z_AXIS}
 	homed = mc.MC_TRUE
 	
 	for i,v in ipairs(axes) do
 		
-		enabled, rc = mc.mcAxisIsEnabled(inst, v)
+		enabled, rcDebug.rc = mc.mcAxisIsEnabled(inst, v)
 		
 		if enabled == mc.MC_TRUE then
 			
-			homed, rc = mc.mcAxisIsHomed(inst, v)
+			homed, rcDebug.rc = mc.mcAxisIsHomed(inst, v)
 			if homed == mc.MC_FALSE then break end
 		
 		end
@@ -37,10 +37,10 @@ end
 
 function rcCommon.GetMachEnabled()
 	
-	local enabled, hSig, rc
+	local enabled, hSig
 	
-	hSig, rc = mc.mcSignalGetHandle(inst, mc.OSIG_MACHINE_ENABLED)
-	enabled, rc = mc.mcSignalGetState(hSig)
+	hSig, rcDebug.rc = mc.mcSignalGetHandle(inst, mc.OSIG_MACHINE_ENABLED)
+	enabled, rcDebug.rc = mc.mcSignalGetState(hSig)
 
 	return enabled
 	
@@ -48,7 +48,7 @@ end
 
 function rcCommon.ShowMessage(messageType, messageLevel, message)
 	
-	local rc, messageTypes, messageBoxLevels, messageLastErrorLevels
+	local messageTypes, messageBoxLevels, messageLastErrorLevels
 	
 	messageTypes = {
 		[TYPE_MESSAGEBOX] = function ( messageLevel, message )
@@ -73,7 +73,7 @@ function rcCommon.ShowMessage(messageType, messageLevel, message)
 			return ok
 		end,
 		[LEVEL_ESTOP] = function ( message )
-			rc = mc.mcCntlEStop(inst)
+			rcDebug.rc = mc.mcCntlEStop(inst)
 			local ok = wx.wxMessageBox(message, "Emergency!", wx.wxOK + wx.wxICON_STOP)
 			return ok
 		end
@@ -86,7 +86,7 @@ function rcCommon.ShowMessage(messageType, messageLevel, message)
 
 	messageLastErrorLevels = {
 		[LEVEL_INFORMATION] = function ( message )
-			rc = mc.mcCntlSetLastError(inst, message)
+			rcDebug.rc = mc.mcCntlSetLastError(inst, message)
 			return wx.wxOK
 		end, 
 		[LEVEL_USER_INPUT] = function ( message )
@@ -94,12 +94,12 @@ function rcCommon.ShowMessage(messageType, messageLevel, message)
 			return yesNoCancel
 		end,
 		[LEVEL_STOP] = function ( message )
-			rc = mc.mcCntlSetLastError(inst, message)
+			rcDebug.rc = mc.mcCntlSetLastError(inst, message)
 			return wx.wxOK
 		end,
 		[LEVEL_ESTOP] = function ( message )
-			rc = mc.mcCntlEStop(inst)
-			rc = mc.mcCntlSetLastError(inst, message)
+			rcDebug.rc = mc.mcCntlEStop(inst)
+			rcDebug.rc = mc.mcCntlSetLastError(inst, message)
 			return wx.wxOK
 		end
 	}

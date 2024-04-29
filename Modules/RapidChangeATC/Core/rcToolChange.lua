@@ -1,10 +1,9 @@
+rcToolChange = {}
 --[[
 NOTES
 1. All functions are responsible for getting themselves into a safe g53 position AT THE BEGINNING!
 2. rcToolChange.LoadTool() is responsible for raising spindle at it's end
 ]]
-rcToolChange = {}
-
 local inst, tcContinue, rc, tData, pData
 
 inst = mc.mcGetInstance( "rcToolChange" )
@@ -22,12 +21,11 @@ function rcToolChange.LoadTool()
 	
 	local tool, response
 		
-	tool, rc = mc.mcToolGetSelected( inst )
+	tool, rcDebug.rc = mc.mcToolGetSelected( inst )
 		
 	if tool == 0 then -- tool zero
 		--LoadTool() is repsponsible for getting to safe z
-		rc = mc.mcCntlGcodeExecuteWait( inst, ""
-			.. rcGCode.Line( SAFE_START )	-- set safe gCode
+		rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, ""
 			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) )
 		 )
 		return
@@ -37,8 +35,7 @@ function rcToolChange.LoadTool()
 	tData =  rcTool.GetData( tool )
 	pData = rcPocket.GetData( tool )
 	--  we have a bare spindle
-	rc = mc.mcCntlGcodeExecuteWait( inst, ""
-		.. rcGCode.Line( SAFE_START )	-- set safe gCode
+	rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, ""
 		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z		
 		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, x( pData.p.x ), y( pData.p.y ) )	-- rapid to pocket xy position
 		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( pData.p.z + pData.lOffset.z ) ) -- rapid to spindle start position
@@ -61,7 +58,7 @@ function rcToolChange.LoadTool()
 			end
 			-- stop spindle
 			gCode = gCode .. rcGCode.Line( SPIN_STOP )
-			rc = mc.mcCntlGcodeExecuteWait( inst, gCode )
+			rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, gCode )
 			
 		end
 		-- confirm tool loaded
@@ -71,7 +68,7 @@ function rcToolChange.LoadTool()
 	
 	if response == wx.wxCANCEL then
 		--assuming that the tool did not load and we have a bare spindle
-		rc = mc.mcCntlGcodeExecuteWait( inst, ""
+		rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, ""
 			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z
 		 )
 		-- terminate with e-stop
@@ -81,8 +78,8 @@ function rcToolChange.LoadTool()
 		
 	end
 	-- we have a tool loaded
-	rc = mc.mcToolSetCurrent( inst, tool )
-	rc = mc.mcCntlGcodeExecuteWait( inst, ""
+	rcDebug.rc = mc.mcToolSetCurrent( inst, tool )
+	rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, ""
 		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, x( pData.p.x + pData.lOffset.x ), y( pData.p.y + pData.lOffset.y ) ) -- rapid to safe xy position
 		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z
 	 )
@@ -95,14 +92,13 @@ function rcToolChange.UnloadTool()
 	
 	local tool, response
 	
-	tool, rc = mc.mcToolGetCurrent( inst )
+	tool, rcDebug.rc = mc.mcToolGetCurrent( inst )
 	if tool == 0 then return end -- do nothing for tool zero
 	
 	tData = rcTool.GetData( tool )
 	pData = rcPocket.GetData( tool )
 	--we have a tool onboard
-	rc = mc.mcCntlGcodeExecuteWait( inst, ""
-		.. rcGCode.Line( SAFE_START )	-- set safe gCode
+	rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, ""
 		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z
 		.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, x( pData.p.x + pData.lOffset.x ), y( pData.p.y + pData.lOffset.y ) ) -- rapid to safe xy position 
 		-- rapid to spindle start position
@@ -116,7 +112,7 @@ function rcToolChange.UnloadTool()
 		
 		if ( pData.spindle.unloadRPM > 0 ) then
 			
-			rc = mc.mcCntlGcodeExecuteWait( inst, ""
+			rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, ""
 				-- start spindle in reverse and dwell
 				.. rcGCode.Line( SPIN_CCW, s( pData.spindle.unloadRPM ) )								
 				.. rcGCode.Line( DWELL, p( pData.spindle.dwell ) )
@@ -142,7 +138,7 @@ function rcToolChange.UnloadTool()
 		
 	end
 	-- set tool to 0 for bare spindle
-	rc = mc.mcToolSetCurrent( inst, 0 )														
+	rcDebug.rc = mc.mcToolSetCurrent( inst, 0 )														
 	
 end
 
@@ -151,7 +147,6 @@ function rcToolChange.PreToolChange()
 	local mach4Enabled, machineHomed
 	
 	tcContinue = mc.MC_TRUE
-	
 	-- is selected tool same as current tool?
 	if ( mc.mcToolGetSelected( inst ) == mc.mcToolGetCurrent( inst ) ) then
 			rcCommon.ShowMessage( TYPE_LAST_ERROR, LEVEL_INFORMATION, "M6: Selected tool = Current tool. No change required." )
@@ -173,19 +168,23 @@ function rcToolChange.PreToolChange()
 		return
 	end
 	
+	-- record state
+	rcDebug.rc = mc.mcCntlMachineStatePush( inst )
+	
 	--[[TODO:
 		- record and save flood coolant signal status
 		- record and save mist coolant signal status
 		- record and save dust collection signal status
 	]]
-	-- record state
-	rc = mc.mcCntlMachineStatePush( inst )
-	rc = mc.mcCntlGcodeExecuteWait( inst, ""
+	m111() -- dust collector stop
+	m114() -- dust cover open
+	
+	rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, ""
 		.. rcGCode.Line( SPIN_STOP )		-- stop spindle
 		.. rcGCode.Line( COOLANT_STOP )	-- stop coolant
 		.. rcGCode.Line( DISABLE_OVERRIDES )	-- disable feed/speed rate overrides
-		.. rcGCode.Line( DUST_HOOD_UP )	-- raise dust hood / remove dust foot
-	 )
+		.. rcGCode.Line( SAFE_START )	-- set safe gCode
+	)
 	
 end
 
@@ -193,20 +192,24 @@ function rcToolChange.PostToolChange()
 	
 	if tcContinue ~= mc.MC_TRUE then return end
 	
-	rc = mc.mcCntlGcodeExecuteWait( inst, ""
-		.. rcGCode.Line( DUST_HOOD_DOWN )	-- lower dust hood / replace dust foot
-		.. rcGCode.Line( DISABLE_OVERRIDES )	-- disable feed/speed rate overrides
-	 )
+	rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, ""
+		.. rcGCode.Line( ENABLE_OVERRIDES )	-- enable feed/speed rate overrides
+	 ) 
+	
+	m115() -- dust cover close
+	m110() -- dust collector start
+	
+	--[[TODO:
+		- restore flood coolant to previous signal status
+		- restore mist coolant to previous signal status
+		- restore dust collection to previous signal status
+	]]	
 	
 	-- restore state
-	rc = mc.mcCntlMachineStatePop( inst )
+	rcDebug.rc = mc.mcCntlMachineStatePop( inst )
 	-- set current tool to selected
-	rc = mc.mcToolSetCurrent( inst, mc.mcToolGetSelected( inst ) ) 
-	--[[TODO:
-		- restore flood coolant signal status
-		- restore mist coolant signal status
-		- restore dust collection signal status
-	]]	
+	rcDebug.rc = mc.mcToolSetCurrent( inst, mc.mcToolGetSelected( inst ) ) 
+	
 	rcCommon.ShowMessage( TYPE_LAST_ERROR, LEVEL_INFORMATION, "M6: Toolchange complete." )
 	
 end
