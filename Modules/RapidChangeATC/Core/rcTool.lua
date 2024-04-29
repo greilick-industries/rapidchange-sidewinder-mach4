@@ -1,6 +1,6 @@
 rcTool = {}
 
-local inst, rc
+local inst
 
 inst = mc.mcGetInstance( "rcTool" )
 
@@ -41,16 +41,16 @@ function rcTool.GetData( tool )
 		return data [ 0 ]
 	end
 	
-	desc, rc = mc.mcToolGetDesc( inst, tool )
+	desc, rcDebug.rc = mc.mcToolGetDesc( inst, tool )
 	
-	tOD, rc = mc.mcToolGetData( inst, mc.MTOOL_MILL_DIA, tool )
+	tOD, rcDebug.rc = mc.mcToolGetData( inst, mc.MTOOL_MILL_DIA, tool )
 	
 	return {
 		tIndex = tool,
 		desc = desc,
 		tOD = tOD,
 		isMaster = GetToolIsMaster( tool )
-	}, rc
+	}
 
 end
 
