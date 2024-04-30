@@ -9,6 +9,7 @@ local function ReadIni( )
 	data = {
 		[ 0 ] = { -- manual tool load/unload
 			desc = "Manual toolchange position",
+			conf = CONFIRM_MANUAL,
 			mcPocket1 = 0,
 			pockets = 1,
 			p1 = { 					--g53 positions
@@ -30,6 +31,7 @@ local function ReadIni( )
 		},
 		[ 1 ] = {
 			desc = "Sidewinder 16 pocket ATC",
+			conf = CONFIRM_USER,
 			mcPocket1 = 1,
 			pockets = 16,
 			p1 = {
@@ -51,6 +53,7 @@ local function ReadIni( )
 		},
 		[ 2 ] = {
 			desc = "RapidChange 6 pocket ATC",
+			conf = CONFIRM_DISABLE,
 			mcPocket1 = 17,
 			pockets = 6,
 			p1 = {

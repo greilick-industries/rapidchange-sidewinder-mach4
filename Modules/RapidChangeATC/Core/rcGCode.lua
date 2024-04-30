@@ -4,11 +4,6 @@ local inst
 
 inst = mc.mcGetInstance("rcGCode")
 
-F1 = "%.1f"
-F2 = "%.2f"
-F4 = "%.4f"
-I = "%02d"
-
 local function GetDefaultUnits()
 	
 	local units, rc
@@ -76,17 +71,34 @@ INCREMENTAL_POSITION_MODE = g(91)
 SPIN_CW = m(3)
 SPIN_CCW = m(4)
 SPIN_STOP = m(5)
-FLOOD_START = m(7)
-MIST_START = m(8)
-COOLANT_STOP = m(9)
 ENABLE_OVERRIDES = m(48)
 DISABLE_OVERRIDES = m(49)
-SAFE_START = Concat(RAPID_MOVE, DEFAULT_UNITS, ABSOLUTE_POSITION_MODE, XY_PLANE_SELECT, CUTTER_COMPENSATION_CANCEL, CANNED_CYCLE_CANCEL)
+SAFE_LINE = Concat(RAPID_MOVE, DEFAULT_UNITS, ABSOLUTE_POSITION_MODE, XY_PLANE_SELECT, CUTTER_COMPENSATION_CANCEL, CANNED_CYCLE_CANCEL)
 	
 function rcGCode.Line(...)
 	
 	return Concat(...) .. "\n"
 	
 end
+
+function rcGCode.StartState()
+	
+	rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, ""
+		.. rcGCode.Line( SPIN_STOP )			-- stop spindle
+		.. rcGCode.Line( DISABLE_OVERRIDES )	-- disable feed/speed rate overrides
+		.. rcGCode.Line( SAFE_LINE )			-- set safe gCode
+	)
+	
+end
+
+function rcGCode.EndState()
+	
+	rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, ""
+		.. rcGCode.Line( SPIN_STOP )		-- stop spindle
+		.. rcGCode.Line( ENABLE_OVERRIDES )	-- enable feed/speed rate overrides
+	)
+	
+end
+
 
 return rcGCode
