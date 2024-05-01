@@ -1,18 +1,18 @@
 README.md
 RapidChangeATC scripts are responsible for execution of the following:
 m6():
-    - find reasons not to execute
-        - selected tool == current tool
-        - machine is not enabled
-        - machine is not homed
-    - call m114()
-    - record & save relevant current machine states
-    - unload existing tool
-    - load selected tool
-    - set current tool
-    - restore relevant machine states
-    - call m1005()
-    - call m115()
+- find reasons not to execute
+    - selected tool == current tool
+    - machine is not enabled
+    - machine is not homed
+- call m114()
+- record & save relevant current machine states
+- unload existing tool
+- load selected tool
+ - set current tool
+- restore relevant machine states
+- call m1005()
+- call m115()
 
 m114():
     - find reasons not to execute
