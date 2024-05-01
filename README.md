@@ -56,8 +56,8 @@ if x,y,z motion is to occur:
 
 Signals:
 RapidChangeATC scripts are NOT responsible for the following:
-    - user custom features of m6(), m114(), m115(), m1005() macros
-    - checking/enabling/disabling soft limits
-    - checking/enabling/disabling coolant
-    - checking/enabling/disabling dust collection
-    - starting spindle upon successful execution
+- user custom features of m6(), m114(), m115(), m1005() macros
+- checking/enabling/disabling soft limits
+- checking/enabling/disabling coolant
+- checking/enabling/disabling dust collection
+- starting spindle upon successful execution
