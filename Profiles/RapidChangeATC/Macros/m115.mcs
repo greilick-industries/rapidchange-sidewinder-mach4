@@ -1,22 +1,37 @@
-local inst
+local inst, dock, offset, feedRate, rc
 
 inst = mc.mcGetInstance( "m115" )
 
--- Get values from the machine.ini. DO NOT EDIT THESE VALUES HERE!!!
-function ReadIni()
-
+local function ReadIni()
+	dock = { 
+		x = mc.mcProfileGetDouble( inst, "DustShoe", "dock.x", 0.0 ),
+		y = mc.mcProfileGetDouble( inst, "DustShoe", "dock.y", 0.0 ),
+		z = mc.mcProfileGetDouble( inst, "DustShoe", "dock.z", 0.0 ),
+	}
+	offset = { 
+		x = mc.mcProfileGetDouble( inst, "DustShoe", "offset.x", 0.0 ),
+		y = mc.mcProfileGetDouble( inst, "DustShoe", "offset.y", 0.0 ),
+		z = mc.mcProfileGetDouble( inst, "DustShoe", "offset.z", 0.0 ),
+	}
+	feedRate = math.abs( mc.mcProfileGetInt( inst, "DustShoe", "feedRate", 0 ) )	
 end
-ReadIni()
 
 function m115()
-	
+		
 	rcDustCover.PreClose()
 	rcDustCover.Close()
-	--[[
-	if rcDustCover.GetContinue == mc.MC_TRUE then
-		-- add user code here!
+	-- user code
+	if rcDustCover.GetContinue() == mc.MC_TRUE then
+		ReadIni()
+		rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, ""
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, x( dock.x ), y( dock.y ) ) -- Rapid to preDock position
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( dock.z ) ) -- Rapid to dock position
+			.. rcGCode.Line( LINEAR_FEED_MOVE, f( feedRate ), x( dock.x + offset.x ), y( dock.y + offset.y ) ) -- Linear Move to postDock position
+			.. rcGCode.Line( MACH_OFFSET, RAPID_MOVE, z( 0 ) ) -- rapid to desired z
+		)
 	end
-	]]
+	-- end of user code
 	rcDustCover.PostClose()
 	
 end
@@ -25,9 +40,7 @@ if ( mc.mcInEditor() == 1 ) then
 	
 	local profile = mc.mcProfileGetName( inst )
 	local path = mc.mcCntlGetMachDir( inst )
-	dofile ( path .. "\\Profiles\\" .. profile .. "\\Macros\\load_RapidChangeATC.mcs" )
+	dofile ( path .. "\\Profiles\\" .. profile .. "\\Macros\\load_modules.mcs" )
 	m115()
 	
 end
-
-

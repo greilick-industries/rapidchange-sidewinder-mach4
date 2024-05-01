@@ -28,6 +28,7 @@ function rcPocket.GetData ( tool )
 	
 	return {
 		mDesc = mData.desc,
+		mConf = mData.conf,
 		mIndex = mIndex,
 		pIndex = pIndex,
 		p = {
