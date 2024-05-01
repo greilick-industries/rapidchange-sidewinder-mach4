@@ -73,7 +73,7 @@ SPIN_CCW = m(4)
 SPIN_STOP = m(5)
 ENABLE_OVERRIDES = m(48)
 DISABLE_OVERRIDES = m(49)
-SAFE_LINE = Concat(RAPID_MOVE, DEFAULT_UNITS, ABSOLUTE_POSITION_MODE, XY_PLANE_SELECT, CUTTER_COMPENSATION_CANCEL, CANNED_CYCLE_CANCEL)
+SAFE_LINE = Concat(RAPID_MOVE, DEFAULT_UNITS, ABSOLUTE_POSITION_MODE, XY_PLANE_SELECT, CANNED_CYCLE_CANCEL)
 	
 function rcGCode.Line(...)
 	
@@ -100,5 +100,24 @@ function rcGCode.EndState()
 	
 end
 
+function rcGCode.CallCustomM( mCode )
+
+	mCode = tonumber( mCode )
+	
+	mCodes = {
+		[6] = function() m6() end,
+		[114] = function() m114() end,
+		[115] = function() m115() end,
+		[1005] = function() m1005() end,
+	}
+	
+	if (mc.mcInEditor() == mc.MC_TRUE) then
+			rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, string.format( "M%i", mCode ) )
+	else
+		
+		return mCodes[ mCode ]
+	end
+
+end
 
 return rcGCode

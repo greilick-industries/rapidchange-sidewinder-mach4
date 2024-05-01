@@ -152,7 +152,7 @@ function rcToolChange.UnloadTool()
 				.. rcGCode.Line( LINEAR_FEED_MOVE, f( pData.spindle.zFeedRate ), z( pData.lOffset.z ) )
 				.. rcGCode.Line( ABSOLUTE_POSITION_MODE )
 				.. rcGCode.Line( SPIN_STOP )	-- stop spindle							
-			 )
+			)
 		end
 		-- confirm tool unloaded, loop if necessary
 		response = Confirm( UNLOAD )	
@@ -163,7 +163,10 @@ function rcToolChange.UnloadTool()
 		return
 	end
 	-- set tool to 0 for bare spindle
-	rcDebug.rc = mc.mcToolSetCurrent( inst, 0 )														
+	rcDebug.rc = mc.mcToolSetCurrent( inst, 0 )		
+	rcDebug.rc = mc.mcCntlGcodeExecuteWait( inst, ""
+		.. rcGCode.Line( CUTTER_COMPENSATION_CANCEL )
+	)
 	tcContinue = mc.MC_TRUE
 	
 end
@@ -178,9 +181,9 @@ function rcToolChange.PreToolChange()
 	end
 	-- is machine homed and enabled?
 	if rcCommon.GetHomedEnabled() ~= mc.MC_TRUE then return end
-	m114() -- dust cover open
 	-- record state
-	rcDebug.rc = mc.mcCntlMachineStatePush( inst )
+	--rcDebug.rc = mc.mcCntlMachineStatePush( inst )
+	m114() -- dust cover open
 	rcGCode.StartState()
 	tcContinue = mc.MC_TRUE
 	
@@ -188,16 +191,23 @@ end
 
 function rcToolChange.PostToolChange()
 	
-	rcGCode.EndState()
-	-- restore state
-	rcDebug.rc = mc.mcCntlMachineStatePop( inst )
-	if tcContinue ~= mc.MC_TRUE then return end
-	-- set current tool to selected
-	rcDebug.rc = mc.mcToolSetCurrent( inst, mc.mcToolGetSelected( inst ) ) 
-	rcCommon.ShowMessage( TYPE_LOG, LEVEL_INFORMATION, "M6: Toolchange complete." )
-	m1005()
-	m115() -- dust cover close
-	tcContinue = mc.MC_FALSE
+	if tcContinue ~= mc.MC_TRUE then
+		rcCommon.ShowMessage( TYPE_LOG, LEVEL_INFORMATION, string.format("rcToolChange: %s.", "operation aborted" ) )
+		-- restore state
+		--rcDebug.rc = mc.mcCntlMachineStatePop( inst )
+		return
+	else
+		rcCommon.ShowMessage( TYPE_LOG, LEVEL_INFORMATION, string.format( "rcToolChange: %s.", "operation complete" ) )
+		rcGCode.EndState()
+		-- restore state
+		--rcDebug.rc = mc.mcCntlMachineStatePop( inst )
+		-- set current tool to selected
+		rcDebug.rc = mc.mcToolSetCurrent( inst, mc.mcToolGetSelected( inst ) ) 
+		rcCommon.ShowMessage( TYPE_LOG, LEVEL_INFORMATION, "M6: Toolchange complete." )
+		m1005() -- tool length
+		m115() -- dust cover close
+		tcContinue = mc.MC_FALSE
+	end
 	
 end
 

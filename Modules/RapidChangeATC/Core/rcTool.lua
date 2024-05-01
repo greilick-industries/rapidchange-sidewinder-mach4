@@ -1,6 +1,6 @@
 rcTool = {}
 
-local inst, data
+local inst, data, maxTools
 
 inst = mc.mcGetInstance( "rcTool" )
 
@@ -14,7 +14,7 @@ local function ReadIni()
 			isMaster = mc.MC_FALSE
 		}
 	}
-	
+	maxTools = mc.mcProfileGetInt( inst, "Preferences", "MaxTools", 99 ) -- value from Configure >> Control >> Tools >> Max Tools
 end
 ReadIni()
 
@@ -22,7 +22,7 @@ local function GetToolInRange( tool )
 	
 	local inRange = mc.MC_FALSE
 	
-	if (tool > 0 and tool <= mc.MC_MAX_TOOLS) then inRange = mc.MC_TRUE end
+	if (tool > 0 and tool <= maxTools) then inRange = mc.MC_TRUE end
 	return inRange
 
 end
