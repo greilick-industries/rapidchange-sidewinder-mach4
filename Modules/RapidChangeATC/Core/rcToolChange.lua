@@ -1,10 +1,4 @@
 rcToolChange = {}
---[[
-NOTES
-1. All functions are responsible for getting themselves into a safe g53 position AT THE BEGINNING!
-2. rcToolChange.LoadTool() is responsible for raising spindle at it's end
-
-]]
 
 local inst, tcContinue, tData, pData
 
@@ -25,12 +19,12 @@ local function Confirm( state )
 		[CONFIRM_MANUAL] = function( state )
 			states = {
 				[UNLOAD] = function()
-					return string.format( "Manual toolchange:\nTool: %i\nDesc: %s\nIs tool unloaded?",
-						0, "Tool description placeholder" )
+					return string.format( "Manual toolchange:\nTool: %i Desc: %s\nIs tool unloaded?",
+						tData.tIndex, tData.desc )
 				end,
 				[LOAD] = function()
 					return string.format( "Manual toolchange:\nTool: %i\nDesc: %s\nIs tool loaded?",
-						0, "Tool description placeholder" )
+						tData.tIndex, tData.desc )
 				end,
 			}			
 			return rcCommon.ShowMessage( TYPE_MESSAGEBOX, LEVEL_USER_INPUT, states[ state ]() )
