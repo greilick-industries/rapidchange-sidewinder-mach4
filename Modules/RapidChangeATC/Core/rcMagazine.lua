@@ -4,6 +4,32 @@ local inst, data, rc
 
 inst = mc.mcGetInstance( "rcMagazine" )
 
+--[[
+mc.mcProfileGetDouble( inst, string.format("RCMagazine%i", i), "",  )
+mc.mcProfileGetInt( inst, string.format("RCMagazine%i", i), "",  )
+mc.mcProfileGetString( inst, string.format("RCMagazine%i", i), "",  )
+
+desc = mc.mcProfileGetString( inst, string.format("RCMagazine%i", i), "desc", "" )
+conf = mc.mcProfileGetInt( inst, string.format("RCMagazine%i", i), "conf", 1 )
+mPocket1 = mc.mcProfileGetInt( inst, string.format("RCMagazine%i", i), "mPocket1", 1 )
+pockets = mc.mcProfileGetInt( inst, string.format("RCMagazine%i", i), "pockets",  )
+p1 = {
+	x = mc.mcProfileGetDouble( inst, string.format("RCMagazine%i", i), "p1.x", 0.0 ),
+	y = mc.mcProfileGetDouble( inst, string.format("RCMagazine%i", i), "p1.y", 0.0 ),
+	z = mc.mcProfileGetDouble( inst, string.format("RCMagazine%i", i), "p1.z", 0.0 ),
+}
+pOffset = {
+	x = mc.mcProfileGetDouble( inst, string.format("RCMagazine%i", i), "pOffset.x", 0.0 ),
+	y = mc.mcProfileGetDouble( inst, string.format("RCMagazine%i", i), "pOffset.y", 0.0 ),
+	z = mc.mcProfileGetDouble( inst, string.format("RCMagazine%i", i), "pOffset.z", 0.0 ),
+}
+lOffset = {
+	x = mc.mcProfileGetDouble( inst, string.format("RCMagazine%i", i), "lOffset.x", 0.0 ),
+	y = mc.mcProfileGetDouble( inst, string.format("RCMagazine%i", i), "lOffset.y", 0.0 ),
+	z = mc.mcProfileGetDouble( inst, string.format("RCMagazine%i", i), "lOffset.z", 0.0 ),
+}
+spindle = rcSpindle.GetData( i )
+]]
 local function ReadIni( )
 	
 	data = {
