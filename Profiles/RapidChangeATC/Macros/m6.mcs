@@ -2,20 +2,9 @@ local inst
 
 inst = mc.mcGetInstance( "m6" )
 
--- Get values from the machine.ini. DO NOT EDIT THESE VALUES HERE!!!
-local function ReadIni()
-
-end
-ReadIni()
-
 function m6()
 	
 	rcToolChange.PreToolChange()
-	--[[
-	if rcToolChange.GetContinue == mc.MC_TRUE then
-		-- add user code here!
-	end
-	]]
 	rcToolChange.UnloadTool()
 	rcToolChange.LoadTool()
 	rcToolChange.PostToolChange()
@@ -26,7 +15,7 @@ if (mc.mcInEditor() == 1) then
 	
 	local profile = mc.mcProfileGetName(inst)
 	local path = mc.mcCntlGetMachDir(inst)
-	dofile (path .. "\\Profiles\\" .. profile .. "\\Macros\\load_RapidChangeATC.mcs")
+	dofile (path .. "\\Profiles\\" .. profile .. "\\Macros\\load_modules.mcs")
 	m6()
 	
 end
