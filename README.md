@@ -15,44 +15,44 @@ m6():
 - call m115()
 
 m114():
-    - find reasons not to execute
-        - cover is already open
-        - machine is not enabled
-        - machine is not homed
-    - record & save relevant current machine states
-    - open dust cover
-    - restore relevant machine states
-    - set dust cover signal
+- find reasons not to execute
+    - cover is already open
+    - machine is not enabled
+    - machine is not homed
+- record & save relevant current machine states
+- open dust cover
+- restore relevant machine states
+- set dust cover signal
 
 m115():
-    - find reasons not to execute
-        - cover is already closed
-        - machine is not enabled
-        - machine is not homed
-    - record & save relevant current machine states
-    - close dust cover
-    - restore relevant machine states
-    - set dust cover signal
+- find reasons not to execute
+    - cover is already closed
+    - machine is not enabled
+    - machine is not homed
+- record & save relevant current machine states
+- close dust cover
+- restore relevant machine states
+- set dust cover signal
 
 m1005():
-    - find reasons not to execute
-        - machine is not enabled
-        - machine is not homed
-    - record & save relevant current machine states
-    - probe tool length
-    - restore relevant machine states
-    - activate tool length offset
+- find reasons not to execute
+    - machine is not enabled
+    - machine is not homed
+- record & save relevant current machine states
+- probe tool length
+- restore relevant machine states
+- activate tool length offset
 
 Process/Policy:
-    - each macro is responsible for safe execution of g-code
-        if x,y,z motion is to occur:
-        - m5
-        - raise spindle to safe location at beginning AND end
-    - each step requires the previous step to be successful
-    - if a step is not successful
-        - attempt to restore relevant machine states
-        - inform reason for failure
-        - stop progress in gentlest way possible, but E-Stop machine if necessary
+- each macro is responsible for safe execution of g-code
+if x,y,z motion is to occur:
+  - m5
+  - raise spindle to safe location at beginning AND end
+  - each step requires the previous step to be successful
+  - if a step is not successful
+    - attempt to restore relevant machine states
+    - inform reason for failure
+    - stop progress in gentlest way possible, but E-Stop machine if necessary
 
 Signals:
 RapidChangeATC scripts are NOT responsible for the following:
