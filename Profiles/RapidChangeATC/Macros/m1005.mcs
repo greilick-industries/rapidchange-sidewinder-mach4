@@ -1,0 +1,20 @@
+local inst
+
+inst = mc.mcGetInstance( "m1005" )
+
+function m1005()
+	
+	rcToolLengthSensor.preSense()
+	rcToolLengthSensor.Sense()
+	rcToolLengthSensor.postSense()
+	
+end
+
+if (mc.mcInEditor() == 1) then
+	
+	local profile = mc.mcProfileGetName(inst)
+	local path = mc.mcCntlGetMachDir(inst)
+	dofile (path .. "\\Profiles\\" .. profile .. "\\Macros\\load_modules.mcs")
+	m1005()
+	
+end
